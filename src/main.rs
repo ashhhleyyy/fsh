@@ -86,7 +86,7 @@ fn main() {
         }
         format!("{}", buf.to_string_lossy())
     } else {
-        format!("{:?}", pwd.to_string_lossy())
+        format!("{}", pwd.to_string_lossy())
     };
 
     let repo = Repository::discover(".").ok();
