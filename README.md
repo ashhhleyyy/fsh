@@ -9,3 +9,7 @@ A `fish` theme based on the following:
 - [Dracula theme](https://draculatheme.com)
 
 Requires a font with the required icons, I use [Nerd Fonts](https://www.nerdfonts.com/).
+
+## Installing
+
+Run `./setup.sh`
