@@ -8,6 +8,6 @@ if [ ! -f $HOME/.config/fish/functions/fish_prompt.fish ]; then
     echo "Creating $HOME/.config/fish/functions/fish_prompt.fish"
     echo "function fish_prompt
     set FSH_LAST_STATUS \$status
-    fsh \$LAST_STATUS
+    fsh \$FSH_LAST_STATUS
 end" > $HOME/.config/fish/functions/fish_prompt.fish
 fi
