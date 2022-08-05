@@ -2,6 +2,7 @@
 echo Compiling with cargo...
 cargo build --release
 echo Copying to $HOME/.local/bin
+mkdir -p $HOME/.local/bin/
 cp target/release/fsh $HOME/.local/bin/
 
 enable_hostname="0"
@@ -14,6 +15,7 @@ do
 done
 
 if [ ! -f $HOME/.config/fish/functions/fish_prompt.fish ]; then
+    mkdir -p $HOME/.config/fish/functions/
     if [ $enable_hostname = "1" ]; then
         echo "Creating $HOME/.config/fish/functions/fish_prompt.fish"
         echo "function fish_prompt
