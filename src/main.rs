@@ -1,10 +1,12 @@
 use ansi_term::{Colour as AnsiColour, Style};
 use git2::{Repository, Status as GitStatus};
 use std::{fmt::Display, path::PathBuf};
+use gethostname::gethostname;
 
 struct PromptComponent {
     text: String,
     style: Style,
+    space_after: bool,
 }
 
 enum Colour {
@@ -42,6 +44,7 @@ impl PromptComponent {
         Self {
             text: text.to_string(),
             style,
+            space_after: true,
         }
     }
     
@@ -53,6 +56,15 @@ impl PromptComponent {
         Self {
             text: text.to_string(),
             style: Style::default(),
+            space_after: true,
+        }
+    }
+
+    fn no_space(self) -> Self {
+        Self {
+            text: self.text,
+            style: self.style,
+            space_after: false,
         }
     }
 }
@@ -73,7 +85,14 @@ fn main() {
     let mut components = Vec::new();
 
     let user = users::get_current_username().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "unknown".to_string());
-    components.push(PromptComponent::bold(&user, Colour::Purple));
+    if std::env::var("FSH_NO_HOSTNAME").is_ok() {
+        components.push(PromptComponent::bold(&user, Colour::Purple));
+    } else {
+        components.push(PromptComponent::bold(&user, Colour::Purple).no_space());
+        components.push(PromptComponent::unstyled("@").no_space());
+        let hostname = gethostname().into_string().unwrap_or_else(|e |format!("{:?}", e));
+        components.push(PromptComponent::bold(&hostname, Colour::Pink));
+    }
 
     let home_dir = std::env::var("HOME").unwrap();
     let pwd = std::env::current_dir().unwrap();
@@ -103,7 +122,11 @@ fn main() {
     }
 
     for component in components {
-        print!("{} ", component);
+        if component.space_after {
+            print!("{} ", component);
+        } else {
+            print!("{}", component);
+        }
     }
 }
 
