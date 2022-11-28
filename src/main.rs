@@ -1,7 +1,7 @@
 use ansi_term::{Colour as AnsiColour, Style};
+use gethostname::gethostname;
 use git2::{Repository, Status as GitStatus};
 use std::{fmt::Display, path::PathBuf};
-use gethostname::gethostname;
 
 struct PromptComponent {
     text: String,
@@ -21,8 +21,8 @@ enum Colour {
 fn from_hex(hex: u32) -> AnsiColour {
     AnsiColour::RGB(
         (hex >> 16 & 0xff) as u8,
-        (hex >> 8  & 0xff) as u8,
-        (hex >> 0  & 0xff) as u8,
+        (hex >> 8 & 0xff) as u8,
+        (hex & 0xff) as u8,
     )
 }
 
@@ -47,7 +47,7 @@ impl PromptComponent {
             space_after: true,
         }
     }
-    
+
     fn bold(text: &str, colour: Colour) -> Self {
         Self::new(text, colour.to_ansi().bold())
     }
@@ -76,7 +76,7 @@ impl Display for PromptComponent {
 }
 
 fn main() {
-    let last_status = if let Some(status) = std::env::args().into_iter().skip(1).next() {
+    let last_status = if let Some(status) = std::env::args().into_iter().nth(1) {
         status.parse().unwrap()
     } else {
         0
@@ -84,13 +84,17 @@ fn main() {
 
     let mut components = Vec::new();
 
-    let user = users::get_current_username().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "unknown".to_string());
+    let user = users::get_current_username()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "unknown".to_string());
     if std::env::var("FSH_NO_HOSTNAME").is_ok() {
         components.push(PromptComponent::bold(&user, Colour::Purple));
     } else {
         components.push(PromptComponent::bold(&user, Colour::Purple).no_space());
         components.push(PromptComponent::unstyled("@").no_space());
-        let hostname = gethostname().into_string().unwrap_or_else(|e |format!("{:?}", e));
+        let hostname = gethostname()
+            .into_string()
+            .unwrap_or_else(|e| format!("{:?}", e));
         components.push(PromptComponent::bold(&hostname, Colour::Pink));
     }
 
@@ -118,7 +122,10 @@ fn main() {
     if last_status == 0 {
         components.push(PromptComponent::bold("\u{f061}", Colour::Yellow));
     } else {
-        components.push(PromptComponent::bold(&format!("{} \u{f061}", last_status), Colour::Red));
+        components.push(PromptComponent::bold(
+            &format!("{} \u{f061}", last_status),
+            Colour::Red,
+        ));
     }
 
     for component in components {
@@ -135,18 +142,18 @@ fn get_git_info(components: &mut Vec<PromptComponent>, repo: &Option<Repository>
         Some(repo) => {
             let head = match repo.head() {
                 Ok(head) => Some(head.shorthand().unwrap().to_string()),
-                Err(ref e) if e.code() == git2::ErrorCode::NotFound => {
-                    None
-                }
+                Err(ref e) if e.code() == git2::ErrorCode::NotFound => None,
                 Err(ref e) if e.code() == git2::ErrorCode::UnbornBranch => {
                     // https://github.com/starship/starship/commit/489838e6a24ea1c08be6abe56d066724a1d59abd#diff-d6346fd7d17270b1282142aeeda9c4bc2b7d8fd0f37b24a1c871a9257f0ed0aaR324-R336
                     let mut head_path = repo.path().to_path_buf();
                     head_path.push("HEAD");
 
                     std::fs::read_to_string(&head_path)
-                        .ok().unwrap()
+                        .ok()
+                        .unwrap()
                         .lines()
-                        .next().unwrap()
+                        .next()
+                        .unwrap()
                         .trim()
                         .split('/')
                         .last()
@@ -155,27 +162,50 @@ fn get_git_info(components: &mut Vec<PromptComponent>, repo: &Option<Repository>
                 Err(e) => Err(e).unwrap(),
             };
 
-            let head = head.unwrap_or("(no HEAD)".to_string());
+            let head = head.unwrap_or_else(|| "(no HEAD)".to_string());
 
-            components.push(PromptComponent::bold(&format!("\u{e725} {}", head), Colour::Blue));
+            components.push(PromptComponent::bold(
+                &format!("\u{e725} {}", head),
+                Colour::Blue,
+            ));
 
             let mut unstaged = false;
             let mut staged = false;
             for status in repo.statuses(None).unwrap().iter() {
                 let status = status.status();
-                if status.intersects(GitStatus::WT_DELETED | GitStatus::WT_MODIFIED | GitStatus::WT_NEW | GitStatus::WT_RENAMED | GitStatus::WT_TYPECHANGE) {
+                if status.intersects(
+                    GitStatus::WT_DELETED
+                        | GitStatus::WT_MODIFIED
+                        | GitStatus::WT_NEW
+                        | GitStatus::WT_RENAMED
+                        | GitStatus::WT_TYPECHANGE,
+                ) {
                     unstaged = true;
                 }
-                if status.intersects(GitStatus::INDEX_DELETED | GitStatus::INDEX_MODIFIED | GitStatus::INDEX_NEW | GitStatus::INDEX_RENAMED | GitStatus::INDEX_TYPECHANGE) {
+                if status.intersects(
+                    GitStatus::INDEX_DELETED
+                        | GitStatus::INDEX_MODIFIED
+                        | GitStatus::INDEX_NEW
+                        | GitStatus::INDEX_RENAMED
+                        | GitStatus::INDEX_TYPECHANGE,
+                ) {
                     staged = true;
                 }
             }
 
             let action = match repo.state() {
                 git2::RepositoryState::Merge => Some(PromptComponent::bold("merge", Colour::Pink)),
-                git2::RepositoryState::Revert | git2::RepositoryState::RevertSequence => Some(PromptComponent::bold("revert", Colour::Pink)),
-                git2::RepositoryState::CherryPick | git2::RepositoryState::CherryPickSequence => Some(PromptComponent::bold("cherry pick", Colour::Pink)),
-                git2::RepositoryState::Rebase | git2::RepositoryState::RebaseInteractive | git2::RepositoryState::RebaseMerge => Some(PromptComponent::bold("rebase", Colour::Pink)),
+                git2::RepositoryState::Revert | git2::RepositoryState::RevertSequence => {
+                    Some(PromptComponent::bold("revert", Colour::Pink))
+                }
+                git2::RepositoryState::CherryPick | git2::RepositoryState::CherryPickSequence => {
+                    Some(PromptComponent::bold("cherry pick", Colour::Pink))
+                }
+                git2::RepositoryState::Rebase
+                | git2::RepositoryState::RebaseInteractive
+                | git2::RepositoryState::RebaseMerge => {
+                    Some(PromptComponent::bold("rebase", Colour::Pink))
+                }
                 _ => None,
             };
 
@@ -187,11 +217,11 @@ fn get_git_info(components: &mut Vec<PromptComponent>, repo: &Option<Repository>
             if staged {
                 components.push(PromptComponent::bold("+", Colour::Green));
             }
-            
+
             if unstaged {
                 components.push(PromptComponent::bold("●", Colour::Red));
             }
-        },
-        None => { },
+        }
+        None => {}
     }
 }
