@@ -7,7 +7,11 @@
   };
 
   outputs = { self, nixpkgs, crane, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+    {
+      overlays.default = final: prev: {
+        inherit (self.packages.${prev.system}) fsh;
+      };
+    } // flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
           system = system;
@@ -57,7 +61,8 @@
         };
       };
 
-      packages.default = fsh;
+      packages.fsh = fsh;
+      packages.default = self.packages.${system}.fsh;
 
       apps.default = flake-utils.lib.mkApp {
         drv = fsh;
