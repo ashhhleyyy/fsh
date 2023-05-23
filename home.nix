@@ -18,7 +18,7 @@ in
   };
 
   config = mkIf cfg.enable {
-    home.packages = pkgs.fsh;
+    home.packages = [ pkgs.fsh ];
     programs.fish.functions.fish_prompt.body = ''
     set FSH_LAST_STATUS $status
     fsh $FSH_LAST_STATUS
