@@ -11,6 +11,7 @@
       overlays.default = final: prev: {
         inherit (self.packages.${prev.system}) fsh;
       };
+      homeModules.fsh = import ./home.nix;
     } // flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
