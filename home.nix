@@ -21,6 +21,11 @@ in
     home.packages = [ pkgs.fsh ];
     programs.fish.functions.fish_prompt.body = ''
     set FSH_LAST_STATUS $status
+    if test "$SSH_CLIENT" != "" || test "$SSH_TTY" != "" | test "$SSH_CONNECTION" != ""
+      set --erase FSH_NO_HOSTNAME
+    else
+      set -x FSH_NO_HOSTNAME 1
+    end
     fsh $FSH_LAST_STATUS
     '';
   };
