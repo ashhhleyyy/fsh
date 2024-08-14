@@ -98,19 +98,8 @@ fn main() {
         components.push(PromptComponent::bold(&hostname, Colour::Pink));
     }
 
-    let home_dir = std::env::var("HOME").unwrap();
     let pwd = std::env::current_dir().unwrap();
-    let dir = if pwd.starts_with(&home_dir) {
-        let mut buf = PathBuf::new();
-        buf.push("~");
-        if pwd != std::path::Path::new(&home_dir) {
-            let rel_path = pwd.strip_prefix(&home_dir).unwrap();
-            buf.push(rel_path);
-        }
-        format!("{}", buf.to_string_lossy())
-    } else {
-        format!("{}", pwd.to_string_lossy())
-    };
+    let dir = format!("C:{}", pwd.to_string_lossy()).replace('/', "\\");
 
     let repo = Repository::discover(".").ok();
 
